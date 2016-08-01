@@ -96,10 +96,15 @@ The `LOG_TYPES` filter can be set to:
 - `fcpr`: Failed Change Password Request (level: 3)
 - `fn`: Failed Sending Notification (level: 3)
 - `limit_wc`: Blocked Account (level: 4)
+- `limit_mu`: Blocked IP Address (level: 4)
 - `limit_ui`: Too Many Calls to /userinfo (level: 4)
 - `api_limit`: Rate Limit On API (level: 4)
 - `sdu`: Successful User Deletion (level: 1)
 - `fdu`: Failed User Deletion (level: 3)
+- `slo`: Success Logout (level: 1)
+- `flo`: Failed Logout (level: 3)
+- `sd`: Success Delegation (level: 1)
+- `fd`: Failed Delegation (level: 3)
 
 So for example, if I want to filter on a few events I would set the `LOG_TYPES` filter to: `sce,fce,scu,fcu`.
 

@@ -54,9 +54,9 @@ module.exports =
 	var express = __webpack_require__(5);
 	var Webtask = __webpack_require__(6);
 	var app = express();
-	var Mixpanel = __webpack_require__(9);
-	var Request = __webpack_require__(14);
-	var memoizer = __webpack_require__(15);
+	var Mixpanel = __webpack_require__(7);
+	var Request = __webpack_require__(12);
+	var memoizer = __webpack_require__(13);
 
 	function lastLogCheckpoint(req, res) {
 	  var ctx = req.webtaskContext;
@@ -348,6 +348,10 @@ module.exports =
 	    event: 'Blocked Account',
 	    level: 4 // Critical
 	  },
+	  'limit_mu': {
+	    event: 'Blocked IP Address',
+	    level: 4 // Critical
+	  },
 	  'limit_ui': {
 	    event: 'Too Many Calls to /userinfo',
 	    level: 4 // Critical
@@ -362,6 +366,22 @@ module.exports =
 	  },
 	  'fdu': {
 	    event: 'Failed User Deletion',
+	    level: 3 // Error
+	  },
+	  'slo': {
+	    event: 'Success Logout',
+	    level: 1 // Info
+	  },
+	  'flo': {
+	    event: 'Failed Logout',
+	    level: 3 // Error
+	  },
+	  'sd': {
+	    event: 'Success Delegation',
+	    level: 1 // Info
+	  },
+	  'fd': {
+	    event: 'Failed Delegation',
 	    level: 3 // Error
 	  }
 	};
@@ -458,169 +478,12 @@ module.exports =
 
 /***/ },
 /* 6 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
-	exports.fromConnect = exports.fromExpress = fromConnect;
-	exports.fromHapi = fromHapi;
-	exports.fromServer = exports.fromRestify = fromServer;
-
-
-	// API functions
-
-	function fromConnect (connectFn) {
-	    return function (context, req, res) {
-	        var normalizeRouteRx = createRouteNormalizationRx(req.x_wt.jtn);
-
-	        req.originalUrl = req.url;
-	        req.url = req.url.replace(normalizeRouteRx, '/');
-	        req.webtaskContext = attachStorageHelpers(context);
-
-	        return connectFn(req, res);
-	    };
-	}
-
-	function fromHapi(server) {
-	    var webtaskContext;
-
-	    server.ext('onRequest', function (request, response) {
-	        var normalizeRouteRx = createRouteNormalizationRx(request.x_wt.jtn);
-
-	        request.setUrl(request.url.replace(normalizeRouteRx, '/'));
-	        request.webtaskContext = webtaskContext;
-	    });
-
-	    return function (context, req, res) {
-	        var dispatchFn = server._dispatch();
-
-	        webtaskContext = attachStorageHelpers(context);
-
-	        dispatchFn(req, res);
-	    };
-	}
-
-	function fromServer(httpServer) {
-	    return function (context, req, res) {
-	        var normalizeRouteRx = createRouteNormalizationRx(req.x_wt.jtn);
-
-	        req.originalUrl = req.url;
-	        req.url = req.url.replace(normalizeRouteRx, '/');
-	        req.webtaskContext = attachStorageHelpers(context);
-
-	        return httpServer.emit('request', req, res);
-	    };
-	}
-
-
-	// Helper functions
-
-	function createRouteNormalizationRx(jtn) {
-	    var normalizeRouteBase = '^\/api\/run\/[^\/]+\/';
-	    var normalizeNamedRoute = '(?:[^\/\?#]*\/?)?';
-
-	    return new RegExp(
-	        normalizeRouteBase + (
-	        jtn
-	            ?   normalizeNamedRoute
-	            :   ''
-	    ));
-	}
-
-	function attachStorageHelpers(context) {
-	    context.read = context.secrets.EXT_STORAGE_URL
-	        ?   readFromPath
-	        :   readNotAvailable;
-	    context.write = context.secrets.EXT_STORAGE_URL
-	        ?   writeToPath
-	        :   writeNotAvailable;
-
-	    return context;
-
-
-	    function readNotAvailable(path, options, cb) {
-	        var Boom = __webpack_require__(7);
-
-	        if (typeof options === 'function') {
-	            cb = options;
-	            options = {};
-	        }
-
-	        cb(Boom.preconditionFailed('Storage is not available in this context'));
-	    }
-
-	    function readFromPath(path, options, cb) {
-	        var Boom = __webpack_require__(7);
-	        var Request = __webpack_require__(8);
-
-	        if (typeof options === 'function') {
-	            cb = options;
-	            options = {};
-	        }
-
-	        Request({
-	            uri: context.secrets.EXT_STORAGE_URL,
-	            method: 'GET',
-	            headers: options.headers || {},
-	            qs: { path: path },
-	            json: true,
-	        }, function (err, res, body) {
-	            if (err) return cb(Boom.wrap(err, 502));
-	            if (res.statusCode === 404 && Object.hasOwnProperty.call(options, 'defaultValue')) return cb(null, options.defaultValue);
-	            if (res.statusCode >= 400) return cb(Boom.create(res.statusCode, body && body.message));
-
-	            cb(null, body);
-	        });
-	    }
-
-	    function writeNotAvailable(path, data, options, cb) {
-	        var Boom = __webpack_require__(7);
-
-	        if (typeof options === 'function') {
-	            cb = options;
-	            options = {};
-	        }
-
-	        cb(Boom.preconditionFailed('Storage is not available in this context'));
-	    }
-
-	    function writeToPath(path, data, options, cb) {
-	        var Boom = __webpack_require__(7);
-	        var Request = __webpack_require__(8);
-
-	        if (typeof options === 'function') {
-	            cb = options;
-	            options = {};
-	        }
-
-	        Request({
-	            uri: context.secrets.EXT_STORAGE_URL,
-	            method: 'PUT',
-	            headers: options.headers || {},
-	            qs: { path: path },
-	            body: data,
-	        }, function (err, res, body) {
-	            if (err) return cb(Boom.wrap(err, 502));
-	            if (res.statusCode >= 400) return cb(Boom.create(res.statusCode, body && body.message));
-
-	            cb(null);
-	        });
-	    }
-	}
-
+	module.exports = require("webtask-tools");
 
 /***/ },
 /* 7 */
-/***/ function(module, exports) {
-
-	module.exports = require("boom");
-
-/***/ },
-/* 8 */
-/***/ function(module, exports) {
-
-	module.exports = require("request");
-
-/***/ },
-/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -632,10 +495,10 @@ module.exports =
 	    Released under the MIT license.
 	*/
 
-	var http            = __webpack_require__(10),
-	    querystring     = __webpack_require__(11),
-	    Buffer          = __webpack_require__(12).Buffer,
-	    util            = __webpack_require__(13);
+	var http            = __webpack_require__(8),
+	    querystring     = __webpack_require__(9),
+	    Buffer          = __webpack_require__(10).Buffer,
+	    util            = __webpack_require__(11);
 
 	var create_client = function(token, config) {
 	    var metrics = {};
@@ -1442,79 +1305,103 @@ module.exports =
 
 
 /***/ },
-/* 10 */
+/* 8 */
 /***/ function(module, exports) {
 
 	module.exports = require("http");
 
 /***/ },
-/* 11 */
+/* 9 */
 /***/ function(module, exports) {
 
 	module.exports = require("querystring");
 
 /***/ },
-/* 12 */
+/* 10 */
 /***/ function(module, exports) {
 
 	module.exports = require("buffer");
 
 /***/ },
-/* 13 */
+/* 11 */
 /***/ function(module, exports) {
 
 	module.exports = require("util");
 
 /***/ },
-/* 14 */
+/* 12 */
 /***/ function(module, exports) {
 
 	module.exports = require("superagent");
 
 /***/ },
-/* 15 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(setImmediate) {const LRU = __webpack_require__(18);
-	const _ = __webpack_require__(19);
-	const lru_params =  [ 'max', 'maxAge', 'length', 'dispose', 'stale' ];
+	const LRU        = __webpack_require__(14);
+	const _          = __webpack_require__(15);
+	const lru_params = [ 'max', 'maxAge', 'length', 'dispose', 'stale' ];
 
 	module.exports = function (options) {
-	  var cache = new LRU(_.pick(options, lru_params));
-	  var load = options.load;
-	  var hash = options.hash;
+	  const cache   = new LRU(_.pick(options, lru_params));
+	  const load    = options.load;
+	  const hash    = options.hash;
+	  const bypass  = options.bypass;
+	  const loading  = new Map();
 
-	  var result = function () {
-	    var args = _.toArray(arguments);
-	    var parameters = args.slice(0, -1);
-	    var callback = args.slice(-1).pop();
+	  if (options.disable) {
+	    return load;
+	  }
+
+	  const result = function () {
+	    const args       = _.toArray(arguments);
+	    const parameters = args.slice(0, -1);
+	    const callback   = args.slice(-1).pop();
+	    const self       = this;
 
 	    var key;
+
+	    if (bypass && bypass.apply(self, parameters)) {
+	      return load.apply(self, args);
+	    }
 
 	    if (parameters.length === 0 && !hash) {
 	      //the load function only receives callback.
 	      key = '_';
 	    } else {
-	      key = hash.apply(options, parameters);
+	      key = hash.apply(self, parameters);
 	    }
 
 	    var fromCache = cache.get(key);
 
 	    if (fromCache) {
-	      return setImmediate.apply(null, [callback, null].concat(fromCache));
+	      return callback.apply(null, [null].concat(fromCache));
 	    }
 
-	    load.apply(null, parameters.concat(function (err) {
-	      if (err) {
-	        return callback(err);
-	      }
+	    if (!loading.get(key)) {
+	      loading.set(key, []);
 
-	      cache.set(key, _.toArray(arguments).slice(1));
+	      load.apply(self, parameters.concat(function (err) {
+	        const args = _.toArray(arguments);
 
-	      return callback.apply(null, arguments);
+	        //we store the result only if the load didn't fail.
+	        if (!err) {
+	          cache.set(key, args.slice(1));
+	        }
 
-	    }));
+	        //immediately call every other callback waiting
+	        loading.get(key).forEach(function (callback) {
+	          callback.apply(null, args);
+	        });
 
+	        loading.delete(key);
+	        /////////
+
+	        callback.apply(null, args);
+	      }));
+	    } else {
+	      loading.get(key).push(callback);
+	    }
 	  };
 
 	  result.keys = cache.keys.bind(cache);
@@ -1524,14 +1411,25 @@ module.exports =
 
 
 	module.exports.sync = function (options) {
-	  var cache = new LRU(_.pick(options, lru_params));
-	  var load = options.load;
-	  var hash = options.hash;
+	  const cache = new LRU(_.pick(options, lru_params));
+	  const load = options.load;
+	  const hash = options.hash;
+	  const disable = options.disable;
+	  const bypass = options.bypass;
+	  const self = this;
 
-	  var result = function () {
+	  if (disable) {
+	    return load;
+	  }
+
+	  const result = function () {
 	    var args = _.toArray(arguments);
 
-	    var key = hash.apply(options, args);
+	    if (bypass && bypass.apply(self, arguments)) {
+	      return load.apply(self, arguments);
+	    }
+
+	    var key = hash.apply(self, args);
 
 	    var fromCache = cache.get(key);
 
@@ -1539,7 +1437,7 @@ module.exports =
 	      return fromCache;
 	    }
 
-	    var result = load.apply(null, args);
+	    var result = load.apply(self, args);
 
 	    cache.set(key, result);
 
@@ -1550,195 +1448,16 @@ module.exports =
 
 	  return result;
 	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(16).setImmediate))
-
-/***/ },
-/* 16 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(17).nextTick;
-	var apply = Function.prototype.apply;
-	var slice = Array.prototype.slice;
-	var immediateIds = {};
-	var nextImmediateId = 0;
-
-	// DOM APIs, for completeness
-
-	exports.setTimeout = function() {
-	  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
-	};
-	exports.setInterval = function() {
-	  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
-	};
-	exports.clearTimeout =
-	exports.clearInterval = function(timeout) { timeout.close(); };
-
-	function Timeout(id, clearFn) {
-	  this._id = id;
-	  this._clearFn = clearFn;
-	}
-	Timeout.prototype.unref = Timeout.prototype.ref = function() {};
-	Timeout.prototype.close = function() {
-	  this._clearFn.call(window, this._id);
-	};
-
-	// Does not start the time, just sets up the members needed.
-	exports.enroll = function(item, msecs) {
-	  clearTimeout(item._idleTimeoutId);
-	  item._idleTimeout = msecs;
-	};
-
-	exports.unenroll = function(item) {
-	  clearTimeout(item._idleTimeoutId);
-	  item._idleTimeout = -1;
-	};
-
-	exports._unrefActive = exports.active = function(item) {
-	  clearTimeout(item._idleTimeoutId);
-
-	  var msecs = item._idleTimeout;
-	  if (msecs >= 0) {
-	    item._idleTimeoutId = setTimeout(function onTimeout() {
-	      if (item._onTimeout)
-	        item._onTimeout();
-	    }, msecs);
-	  }
-	};
-
-	// That's not how node.js implements it but the exposed api is the same.
-	exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function(fn) {
-	  var id = nextImmediateId++;
-	  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
-
-	  immediateIds[id] = true;
-
-	  nextTick(function onNextTick() {
-	    if (immediateIds[id]) {
-	      // fn.call() is faster so we optimize for the common use-case
-	      // @see http://jsperf.com/call-apply-segu
-	      if (args) {
-	        fn.apply(null, args);
-	      } else {
-	        fn.call(null);
-	      }
-	      // Prevent ids from leaking
-	      exports.clearImmediate(id);
-	    }
-	  });
-
-	  return id;
-	};
-
-	exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
-	  delete immediateIds[id];
-	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(16).setImmediate, __webpack_require__(16).clearImmediate))
-
-/***/ },
-/* 17 */
-/***/ function(module, exports) {
-
-	// shim for using process in browser
-
-	var process = module.exports = {};
-	var queue = [];
-	var draining = false;
-	var currentQueue;
-	var queueIndex = -1;
-
-	function cleanUpNextTick() {
-	    draining = false;
-	    if (currentQueue.length) {
-	        queue = currentQueue.concat(queue);
-	    } else {
-	        queueIndex = -1;
-	    }
-	    if (queue.length) {
-	        drainQueue();
-	    }
-	}
-
-	function drainQueue() {
-	    if (draining) {
-	        return;
-	    }
-	    var timeout = setTimeout(cleanUpNextTick);
-	    draining = true;
-
-	    var len = queue.length;
-	    while(len) {
-	        currentQueue = queue;
-	        queue = [];
-	        while (++queueIndex < len) {
-	            if (currentQueue) {
-	                currentQueue[queueIndex].run();
-	            }
-	        }
-	        queueIndex = -1;
-	        len = queue.length;
-	    }
-	    currentQueue = null;
-	    draining = false;
-	    clearTimeout(timeout);
-	}
-
-	process.nextTick = function (fun) {
-	    var args = new Array(arguments.length - 1);
-	    if (arguments.length > 1) {
-	        for (var i = 1; i < arguments.length; i++) {
-	            args[i - 1] = arguments[i];
-	        }
-	    }
-	    queue.push(new Item(fun, args));
-	    if (queue.length === 1 && !draining) {
-	        setTimeout(drainQueue, 0);
-	    }
-	};
-
-	// v8 likes predictible objects
-	function Item(fun, array) {
-	    this.fun = fun;
-	    this.array = array;
-	}
-	Item.prototype.run = function () {
-	    this.fun.apply(null, this.array);
-	};
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-	process.version = ''; // empty string to avoid regexp issues
-	process.versions = {};
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	process.cwd = function () { return '/' };
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-	process.umask = function() { return 0; };
 
 
 /***/ },
-/* 18 */
+/* 14 */
 /***/ function(module, exports) {
 
 	module.exports = require("lru-cache");
 
 /***/ },
-/* 19 */
+/* 15 */
 /***/ function(module, exports) {
 
 	module.exports = require("lodash");

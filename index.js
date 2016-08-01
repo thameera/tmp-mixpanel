@@ -12,6 +12,7 @@ const Request = require('superagent');
 const memoizer = require('lru-memoizer');
 
 function lastLogCheckpoint(req, res) {
+  console.log('starting mixpanel-test');
   let ctx = req.webtaskContext;
   let required_settings = ['AUTH0_DOMAIN', 'AUTH0_CLIENT_ID', 'AUTH0_CLIENT_SECRET', 'MIXPANEL_TOKEN', 'MIXPANEL_KEY'];
   let missing_settings = required_settings.filter((setting) => !ctx.data[setting]);
@@ -301,6 +302,10 @@ const logTypes = {
     event: 'Blocked Account',
     level: 4 // Critical
   },
+  'limit_mu': {
+    event: 'Blocked IP Address',
+    level: 4 // Critical
+  },
   'limit_ui': {
     event: 'Too Many Calls to /userinfo',
     level: 4 // Critical
@@ -315,6 +320,22 @@ const logTypes = {
   },
   'fdu': {
     event: 'Failed User Deletion',
+    level: 3 // Error
+  },
+  'slo': {
+    event: 'Success Logout',
+    level: 1 // Info
+  },
+  'flo': {
+    event: 'Failed Logout',
+    level: 3 // Error
+  },
+  'sd': {
+    event: 'Success Delegation',
+    level: 1 // Info
+  },
+  'fd': {
+    event: 'Failed Delegation',
     level: 3 // Error
   }
 };

@@ -201,6 +201,10 @@
           "text": "Blocked Account (Critical)"
         },
         {
+          "value": "limit_mu",
+          "text": "Blocked IP Address (Critical)"
+        },
+        {
           "value": "limit_ui",
           "text": "Too Many Calls to /userinfo (Critical)"
         },
@@ -215,6 +219,22 @@
         {
           "value": "fdu",
           "text": "Failed User Deletion (Error)"
+        },
+        {
+          "value": "slo",
+          "text": "Success Logout (Info)"
+        },
+        {
+          "value": "flo",
+          "text": "Failed Logout (Error)"
+        },
+        {
+          "value": "sd",
+          "text": "Success Delegation (Info)"
+        },
+        {
+          "value": "fd",
+          "text": "Failed Delegation (Error)"
         }
       ]
     }
