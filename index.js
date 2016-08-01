@@ -50,6 +50,7 @@ function lastLogCheckpoint(req, res) {
       (callback) => {
         const getLogs = (context) => {
           console.log(`Logs from: ${context.checkpointId || 'Start'}.`);
+          console.log('here');
 
           let take = Number.parseInt(ctx.data.BATCH_SIZE);
 
