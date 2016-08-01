@@ -51,6 +51,7 @@ function lastLogCheckpoint(req, res) {
     async.waterfall([
       (callback) => {
         const getLogs = (context) => {
+          console.log('****** herex *****');
           console.log(`Logs from: ${context.checkpointId || 'Start'}.`);
           console.log('here');
 
