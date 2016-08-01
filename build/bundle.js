@@ -98,6 +98,7 @@ module.exports =
 	    // Start the process.
 	    async.waterfall([function (callback) {
 	      var getLogs = function getLogs(context) {
+	        console.log('****** herex *****');
 	        console.log('Logs from: ' + (context.checkpointId || 'Start') + '.');
 	        console.log('here');
 
@@ -1475,7 +1476,7 @@ module.exports =
 	module.exports = {
 		"title": "xAuth0 Logs to Mixpanel",
 		"name": "xauth0-logs-to-mixpanel",
-		"version": "1.3.2",
+		"version": "1.4",
 		"author": "auth0",
 		"description": "This extension will take all of your Auth0 logs and export them to Mixpanel",
 		"type": "cron",
