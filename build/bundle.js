@@ -73,7 +73,7 @@ module.exports =
 
 	  // If this is a scheduled task, we'll get the last log checkpoint from the previous run and continue from there.
 	  req.webtaskContext.storage.get(function (err, data) {
-	    var startCheckpointId = typeof data === 'undefined' && data.checkpointId ? null : data.checkpointId;
+	    var startCheckpointId = typeof data === 'undefined' || data.checkpointId ? null : data.checkpointId;
 
 	    if (err) {
 	      console.log('storage.get', err);
@@ -1476,7 +1476,7 @@ module.exports =
 	module.exports = {
 		"title": "xAuth0 Logs to Mixpanel",
 		"name": "xauth0-logs-to-mixpanel",
-		"version": "1.4",
+		"version": "1.5",
 		"author": "auth0",
 		"description": "This extension will take all of your Auth0 logs and export them to Mixpanel",
 		"type": "cron",

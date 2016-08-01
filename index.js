@@ -25,7 +25,7 @@ function lastLogCheckpoint(req, res) {
 
   // If this is a scheduled task, we'll get the last log checkpoint from the previous run and continue from there.
   req.webtaskContext.storage.get((err, data) => {
-    let startCheckpointId = (typeof data === 'undefined') && data.checkpointId ? null : data.checkpointId;
+    let startCheckpointId = (typeof data === 'undefined') || data.checkpointId ? null : data.checkpointId;
 
     if (err) {
       console.log('storage.get', err);
