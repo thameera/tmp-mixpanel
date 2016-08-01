@@ -57,8 +57,10 @@ module.exports =
 	var Mixpanel = __webpack_require__(7);
 	var Request = __webpack_require__(12);
 	var memoizer = __webpack_require__(13);
+	var metadata = __webpack_require__(16);
 
 	function lastLogCheckpoint(req, res) {
+	  console.log('starting mixpanel-test');
 	  var ctx = req.webtaskContext;
 	  var required_settings = ['AUTH0_DOMAIN', 'AUTH0_CLIENT_ID', 'AUTH0_CLIENT_SECRET', 'MIXPANEL_TOKEN', 'MIXPANEL_KEY'];
 	  var missing_settings = required_settings.filter(function (setting) {
@@ -97,6 +99,7 @@ module.exports =
 	    async.waterfall([function (callback) {
 	      var getLogs = function getLogs(context) {
 	        console.log('Logs from: ' + (context.checkpointId || 'Start') + '.');
+	        console.log('here');
 
 	        var take = Number.parseInt(ctx.data.BATCH_SIZE);
 
@@ -443,6 +446,9 @@ module.exports =
 
 	app.get('/', lastLogCheckpoint);
 	app.post('/', lastLogCheckpoint);
+	app.get('/meta', function (req, res) {
+	  res.status(200).send(metadata);
+	});
 
 	module.exports = Webtask.fromExpress(app);
 
@@ -1461,6 +1467,253 @@ module.exports =
 /***/ function(module, exports) {
 
 	module.exports = require("lodash");
+
+/***/ },
+/* 16 */
+/***/ function(module, exports) {
+
+	module.exports = {
+		"title": "xAuth0 Logs to Mixpanel",
+		"name": "xauth0-logs-to-mixpanel",
+		"version": "1.3.2",
+		"author": "auth0",
+		"description": "This extension will take all of your Auth0 logs and export them to Mixpanel",
+		"type": "cron",
+		"repository": "https://github.com/auth0/auth0-logs-to-mixpanel",
+		"keywords": [
+			"auth0",
+			"extension"
+		],
+		"schedule": "0 */5 * * * *",
+		"auth0": {
+			"scopes": "read:logs"
+		},
+		"secrets": {
+			"MIXPANEL_TOKEN": {
+				"description": "Mixpanel Token - this is your Mixpanel Token for your mixpanel project",
+				"required": true
+			},
+			"MIXPANEL_KEY": {
+				"description": "Mixpanel Key - this is your Mixpanel Key for your mixpanel project",
+				"required": true,
+				"type": "password"
+			},
+			"BATCH_SIZE": {
+				"description": "The ammount of logs to be read on each execution. Maximun is 100.",
+				"default": 100
+			},
+			"LOG_LEVEL": {
+				"description": "This allows you to specify the log level of events that need to be sent",
+				"type": "select",
+				"allowMultiple": true,
+				"options": [
+					{
+						"value": "-",
+						"text": ""
+					},
+					{
+						"value": "0",
+						"text": "Debug"
+					},
+					{
+						"value": "1",
+						"text": "Info"
+					},
+					{
+						"value": "2",
+						"text": "Warning"
+					},
+					{
+						"value": "3",
+						"text": "Error"
+					},
+					{
+						"value": "4",
+						"text": "Critical"
+					}
+				]
+			},
+			"LOG_TYPES": {
+				"description": "If you only want to send events with a specific type (eg: failed logins)",
+				"type": "select",
+				"allowMultiple": true,
+				"options": [
+					{
+						"value": "-",
+						"text": ""
+					},
+					{
+						"value": "s",
+						"text": "Success Login (Info)"
+					},
+					{
+						"value": "seacft",
+						"text": "Success Exchange (Info)"
+					},
+					{
+						"value": "feacft",
+						"text": "Failed Exchange (Error)"
+					},
+					{
+						"value": "f",
+						"text": "Failed Login (Error)"
+					},
+					{
+						"value": "w",
+						"text": "Warnings During Login (Warning)"
+					},
+					{
+						"value": "du",
+						"text": "Deleted User (Info)"
+					},
+					{
+						"value": "fu",
+						"text": "Failed Login (invalid email/username) (Error)"
+					},
+					{
+						"value": "fp",
+						"text": "Failed Login (wrong password) (Error)"
+					},
+					{
+						"value": "fc",
+						"text": "Failed by Connector (Error)"
+					},
+					{
+						"value": "fco",
+						"text": "Failed by CORS (Error)"
+					},
+					{
+						"value": "con",
+						"text": "Connector Online (Info)"
+					},
+					{
+						"value": "coff",
+						"text": "Connector Offline (Error)"
+					},
+					{
+						"value": "fcpro",
+						"text": "Failed Connector Provisioning (Critical)"
+					},
+					{
+						"value": "ss",
+						"text": "Success Signup (Info)"
+					},
+					{
+						"value": "fs",
+						"text": "Failed Signup (Error)"
+					},
+					{
+						"value": "cs",
+						"text": "Code Sent (Debug)"
+					},
+					{
+						"value": "cls",
+						"text": "Code/Link Sent (Debug)"
+					},
+					{
+						"value": "sv",
+						"text": "Success Verification Email (Debug)"
+					},
+					{
+						"value": "fv",
+						"text": "Failed Verification Email (Debug)"
+					},
+					{
+						"value": "scp",
+						"text": "Success Change Password (Info)"
+					},
+					{
+						"value": "fcp",
+						"text": "Failed Change Password (Error)"
+					},
+					{
+						"value": "sce",
+						"text": "Success Change Email (Info)"
+					},
+					{
+						"value": "fce",
+						"text": "Failed Change Email (Error)"
+					},
+					{
+						"value": "scu",
+						"text": "Success Change Username (Info)"
+					},
+					{
+						"value": "fcu",
+						"text": "Failed Change Username (Error)"
+					},
+					{
+						"value": "scpn",
+						"text": "Success Change Phone Number (Info)"
+					},
+					{
+						"value": "fcpn",
+						"text": "Failed Change Phone Number (Error)"
+					},
+					{
+						"value": "svr",
+						"text": "Success Verification Email Request (Debug)"
+					},
+					{
+						"value": "fvr",
+						"text": "Failed Verification Email Request (Error)"
+					},
+					{
+						"value": "scpr",
+						"text": "Success Change Password Request (Debug)"
+					},
+					{
+						"value": "fcpr",
+						"text": "Failed Change Password Request (Error)"
+					},
+					{
+						"value": "fn",
+						"text": "Failed Sending Notification (Error)"
+					},
+					{
+						"value": "limit_wc",
+						"text": "Blocked Account (Critical)"
+					},
+					{
+						"value": "limit_mu",
+						"text": "Blocked IP Address (Critical)"
+					},
+					{
+						"value": "limit_ui",
+						"text": "Too Many Calls to /userinfo (Critical)"
+					},
+					{
+						"value": "api_limit",
+						"text": "Rate Limit On API (Critical)"
+					},
+					{
+						"value": "sdu",
+						"text": "Successful User Deletion (Info)"
+					},
+					{
+						"value": "fdu",
+						"text": "Failed User Deletion (Error)"
+					},
+					{
+						"value": "slo",
+						"text": "Success Logout (Info)"
+					},
+					{
+						"value": "flo",
+						"text": "Failed Logout (Error)"
+					},
+					{
+						"value": "sd",
+						"text": "Success Delegation (Info)"
+					},
+					{
+						"value": "fd",
+						"text": "Failed Delegation (Error)"
+					}
+				]
+			}
+		}
+	};
 
 /***/ }
 /******/ ]);

@@ -10,6 +10,8 @@ const app = express();
 const Mixpanel = require('mixpanel');
 const Request = require('superagent');
 const memoizer = require('lru-memoizer');
+var metadata = require('./webtask.json');
+
 
 function lastLogCheckpoint(req, res) {
   console.log('starting mixpanel-test');
@@ -408,6 +410,9 @@ app.use(function (req, res, next) {
 
 app.get('/', lastLogCheckpoint);
 app.post('/', lastLogCheckpoint);
+app.get('/meta', function (req, res) {
+  res.status(200).send(metadata);
+});
 
 module.exports = Webtask.fromExpress(app);
 
